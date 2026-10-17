@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+def vc = (project.findProperty('vc') ?: '1').toString().toInteger()
+
+android {
+    namespace 'com.lgw2222.intervaltimer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.lgw2222.intervaltimer'
+        minSdk 26
+        targetSdk 34
+        versionCode vc
+        versionName "1.${vc}"
+    }
+
+    // One fixed key so every new build installs over the old one.
+    signingConfigs {
+        shared {
+            storeFile file('../timer.keystore')
+            storePassword 'intervaltimer'
+            keyAlias 'timer'
+            keyPassword 'intervaltimer'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+        debug {
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}

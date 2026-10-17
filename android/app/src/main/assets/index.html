@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14204A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Timer">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Interval Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F7;--surface:#FFFFFF;--ink:#14204A;--muted:#5A6587;--line:#D3D9E7;--field:#F5F7FB;
+  --work:#FFB21F;--rest:#2E73F0;--navy:#14204A;--danger:#C8323C;
+  --cond:"Barlow Condensed","Arial Narrow","Roboto Condensed","sans-serif-condensed",system-ui,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0D1430;--surface:#162043;--ink:#EDF0FA;--muted:#9AA4C5;--line:#2A3660;--field:#101935;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#0D1430;--surface:#162043;--ink:#EDF0FA;--muted:#9AA4C5;--line:#2A3660;--field:#101935;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--rest);outline-offset:2px}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 150px}
+.name{width:100%;border:0;background:none;padding:6px 0;font:800 clamp(38px,10vw,54px)/1 var(--cond);letter-spacing:-.01em;color:var(--ink)}
+.name::placeholder{color:var(--muted);opacity:.6}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;color:var(--muted);margin:2px 0 22px}
+.meta select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink)}
+
+.seg{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.seg-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.seg-num{flex:none;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font:700 17px var(--cond)}
+.seg-name{flex:1;min-width:0;border:0;border-bottom:1px solid var(--line);background:none;padding:6px 2px;font-weight:600;font-size:17px}
+.seg-name::placeholder{color:var(--muted);font-weight:500}
+.seg-tools{display:flex;gap:2px}
+.icon{width:34px;height:34px;border:0;border-radius:8px;background:none;color:var(--muted);display:grid;place-items:center;padding:0}
+.icon:hover:not(:disabled){background:var(--field);color:var(--ink)}
+.icon:disabled{opacity:.3;cursor:default}
+.icon svg{width:18px;height:18px}
+
+.toggle{display:grid;grid-template-columns:1fr 1fr;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:12px}
+.toggle button{border:0;background:none;border-radius:7px;padding:8px;font:700 18px var(--cond);color:var(--muted)}
+.toggle button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field>span{display:block;font-size:14px;color:var(--muted);margin-bottom:5px}
+.stepper,.time{display:flex;align-items:center;gap:4px;height:48px}
+.stepper button{flex:none;width:44px;height:48px;border:1px solid var(--line);background:var(--field);border-radius:10px;font:700 22px var(--cond)}
+.stepper input,.time input{flex:1;min-width:0;height:48px;border:1px solid var(--line);background:var(--field);border-radius:10px;text-align:center;font:700 24px var(--cond);font-variant-numeric:tabular-nums}
+.time b{font:700 22px var(--cond);color:var(--muted)}
+.seg-sum{margin:12px 0 0;color:var(--muted);font-size:15px}
+.seg-sum strong{color:var(--ink);font-weight:600}
+
+.add{width:100%;border:2px dashed var(--line);background:none;border-radius:16px;padding:14px;font:700 20px var(--cond);color:var(--muted)}
+.add:hover{color:var(--ink);border-color:var(--muted)}
+
+.library{margin-top:32px}
+.library h2{font:700 26px var(--cond);margin:0 0 10px}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.saved{list-style:none;margin:0;padding:0}
+.saved li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.saved .s-info{flex:1;min-width:0}
+.saved .s-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved .s-meta{font-size:14px;color:var(--muted)}
+.empty{color:var(--muted);font-size:15px;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+.toast.show{opacity:1}
+
+.startbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));z-index:4}
+.startbar-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:16px}
+.tot{flex:none}
+.tot b{display:block;font:800 30px/1 var(--cond);font-variant-numeric:tabular-nums}
+.tot span{font-size:13px;color:var(--muted)}
+.go{flex:1;height:64px;border:0;border-radius:14px;background:var(--work);color:var(--navy);font:800 26px var(--cond);letter-spacing:.01em}
+.go:active{transform:scale(.98)}
+
+/* Run screen */
+.run{--bgc:#1E2B5E;--fg:#fff;position:fixed;inset:0;z-index:10;display:none;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  background:var(--bgc);color:var(--fg);transition:background-color .35s ease;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.run.on{display:flex}
+.run[data-k=work]{--bgc:var(--work);--fg:var(--navy)}
+.run[data-k=rest]{--bgc:var(--rest);--fg:#fff}
+.run[data-k=done]{--bgc:var(--navy);--fg:#fff}
+.run-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.run-top .right{display:flex;gap:8px}
+.pill{border:0;border-radius:999px;padding:10px 16px;font-size:17px;background:rgba(255,255,255,.18);background:color-mix(in srgb,currentColor 14%,transparent);font-weight:600;display:flex;align-items:center;gap:7px;min-height:50px}
+.pill svg{width:22px;height:22px}
+.pill[hidden]{display:none}
+.left{font:700 20px var(--cond);font-variant-numeric:tabular-nums;opacity:.85}
+.run-main{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.r-title{font:800 clamp(30px,8vw,56px)/1 var(--cond);max-width:100%;overflow-wrap:anywhere}
+.r-sub{font:700 clamp(22px,6vw,36px)/1.1 var(--cond);opacity:.78;margin-top:6px}
+.r-time{font:800 min(46vw,38vh)/.86 var(--cond);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:.06em 0 .04em;transition:opacity .2s}
+.run.paused .r-time{opacity:.4}
+.r-next{font-size:clamp(16px,4vw,20px);opacity:.85;min-height:1.5em}
+.bars{display:grid;gap:6px;margin:6px 0 22px}
+.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.22);background:color-mix(in srgb,currentColor 18%,transparent);overflow:hidden}
+.bar.thin{height:4px}
+.bar i{display:block;height:100%;width:0;background:currentColor;border-radius:inherit}
+.ctrls{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:12px;width:100%;max-width:680px;margin:0 auto}
+.cbtn{height:clamp(104px,16vh,150px);border:0;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:rgba(255,255,255,.18);background:color-mix(in srgb,currentColor 15%,transparent);color:inherit;font:700 21px var(--cond)}
+.cbtn svg{width:48px;height:48px}
+.cbtn.big{background:var(--fg);color:var(--bgc);font-size:24px}
+.cbtn.big svg{width:66px;height:66px}
+.cbtn:active{transform:scale(.97)}
+.done-btns{display:none;gap:12px;max-width:680px;width:100%;margin:0 auto}
+.done-btns button{flex:1;height:84px;border-radius:24px;border:0;font:800 26px var(--cond)}
+.done-btns .again{background:var(--work);color:var(--navy)}
+.done-btns .back{background:rgba(255,255,255,.14);color:#fff}
+.run[data-k=done] .ctrls,.run[data-k=done] .bars{display:none}
+.run[data-k=done] .done-btns{display:flex}
+.run[data-k=done] .r-time{font-size:min(28vw,26vh)}
+.flash{animation:flash .5s ease}
+@keyframes flash{from{transform:scale(1.04)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.run{transition:none}.flash{animation:none}}
+@media (min-width:700px){.fields{grid-template-columns:repeat(4,1fr)}}
+@media (orientation:landscape) and (max-height:600px){
+  .run.on{display:grid;grid-template-columns:1fr minmax(260px,36vw);grid-template-rows:auto 1fr auto;column-gap:20px}
+  .run-top{grid-column:1/-1}
+  .run-main{grid-column:1;grid-row:2}
+  .bars{grid-column:1;grid-row:3;margin:0}
+  .ctrls,.done-btns{grid-column:2;grid-row:2/4;align-self:center}
+  .ctrls{grid-template-columns:1fr 1fr}
+  .cbtn{height:clamp(80px,26vh,130px)}
+  .cbtn.big{grid-column:1/-1;order:-1}
+  .done-btns{flex-direction:column}
+  .r-time{font-size:min(30vw,54vh)}
+}
+html.pip .run.on{display:flex;padding:4px 8px 6px}
+html.pip .run-top,html.pip .ctrls,html.pip .done-btns,html.pip .r-next,html.pip .r-title{display:none !important}
+html.pip .r-sub{font-size:14vh;margin:0;opacity:.9;white-space:nowrap}
+html.pip .r-time{font-size:min(60vh,46vw);margin:0}
+html.pip .bars{margin:0;gap:0}
+html.pip .bar.thin{display:none}
+.pipsrc{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+
+<main class="wrap" id="builder">
+  <input class="name" id="wname" placeholder="Name this workout" aria-label="Workout name" autocomplete="off">
+  <div class="meta">
+    <label>Get-ready countdown
+      <select id="prep">
+        <option value="0">Off</option><option value="3">3 sec</option><option value="5">5 sec</option>
+        <option value="10">10 sec</option><option value="15">15 sec</option><option value="30">30 sec</option>
+      </select>
+    </label>
+    <button class="btn" id="installBtn" hidden>Install app</button>
+    <button class="btn" id="fsBtn" hidden>Full screen</button>
+  </div>
+
+  <div id="segs"></div>
+  <button class="add" id="addSeg">+ Add segment</button>
+
+  <section class="library">
+    <h2>Saved workouts</h2>
+    <div class="row-btns">
+      <button class="btn" id="saveW">Save this workout</button>
+      <button class="btn" id="newW">Start a new one</button>
+    </div>
+    <ul class="saved" id="saved"></ul>
+  </section>
+</main>
+
+<div class="startbar">
+  <div class="startbar-in">
+    <div class="tot"><b id="totTime">0:00</b><span id="totInfo">total</span></div>
+    <button class="go" id="go">Start</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="run" id="run" data-k="ready" aria-live="polite">
+  <div class="run-top">
+    <button class="pill" id="endBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span>End</span></button>
+    <span class="left" id="left"></span>
+    <div class="right">
+      <button class="pill" id="pipBtn" hidden aria-label="Mini timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2"/><rect x="12" y="11.5" width="7" height="5.5" rx="1" fill="currentColor"/></svg><span>Mini</span></button>
+      <button class="pill" id="sndBtn" aria-label="Sound on"></button>
+    </div>
+  </div>
+  <div class="run-main">
+    <div class="r-title" id="rTitle"></div>
+    <div class="r-sub" id="rSub"></div>
+    <div class="r-time" id="rTime">0:00</div>
+    <div class="r-next" id="rNext"></div>
+  </div>
+  <div class="bars">
+    <div class="bar"><i id="stepBar"></i></div>
+    <div class="bar thin"><i id="allBar"></i></div>
+  </div>
+  <div class="ctrls">
+    <button class="cbtn" id="prevBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.5v14H6zM20 5v14l-10-7z"/></svg><span>Back</span></button>
+    <button class="cbtn big" id="playBtn" aria-label="Pause"></button>
+    <button class="cbtn" id="nextBtn" aria-label="Skip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 5H18v14h-2.5zM4 5v14l10-7z"/></svg><span>Skip</span></button>
+  </div>
+  <div class="done-btns">
+    <button class="back" id="doneBack">Edit workout</button>
+    <button class="again" id="doneAgain">Go again</button>
+  </div>
+</div>
+<canvas class="pipsrc" id="pipCanvas" width="480" height="270" aria-hidden="true"></canvas>
+<video class="pipsrc" id="pipVideo" muted playsinline autopictureinpicture aria-hidden="true"></video>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const NATIVE = window.AndroidTimer || null;
+const KEY = 'it.current', LIB = 'it.saved', SND = 'it.sound';
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = s => { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
+
+const newSeg = () => ({ name: '', mode: 'reps', count: 8, work: 45, rest: 15, after: 60 });
+const fresh = () => ({ name: '', prep: 5, segments: [newSeg()] });
+let W = load(KEY, null);
+if (!W || !Array.isArray(W.segments) || !W.segments.length) W = fresh();
+
+const segTotal = s => s.count * Math.max(1, s.work) + Math.max(0, s.count - 1) * s.rest;
+const wTotal = w => w.segments.reduce((t, s, i) => t + segTotal(s) + (i < w.segments.length - 1 ? s.after : 0), w.prep);
+const unit = (s, n) => (s.mode === 'laps' ? 'lap' : 'rep') + (n === 1 ? '' : 's');
+const segLabel = (s, i) => s.name.trim() || (W.segments.length > 1 ? 'Segment ' + (i + 1) : (s.mode === 'laps' ? 'Laps' : 'Work'));
+const persist = () => store(KEY, W);
+
+/* ---------- Builder ---------- */
+const ico = {
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>'
+};
+const timeField = (label, f, v) => `
+  <div class="field"><span>${label}</span>
+    <div class="time" data-f="${f}">
+      <input type="number" inputmode="numeric" min="0" max="99" data-t="m" value="${Math.floor(v / 60)}" aria-label="${label} minutes">
+      <b>:</b>
+      <input type="number" inputmode="numeric" min="0" max="59" data-t="s" value="${String(v % 60).padStart(2, '0')}" aria-label="${label} seconds">
+    </div>
+  </div>`;
+const segSummary = s => `<strong>${s.count} ${unit(s, s.count)} × ${fmt(Math.max(1, s.work))}</strong>${s.rest > 0 && s.count > 1 ? `, ${fmt(s.rest)} rest between` : ''} = ${fmt(segTotal(s))}`;
+
+function renderSegs() {
+  const n = W.segments.length;
+  $('#segs').innerHTML = W.segments.map((s, i) => `
+  <section class="seg" data-i="${i}">
+    <div class="seg-head">
+      <span class="seg-num">${i + 1}</span>
+      <input class="seg-name" data-f="name" value="${esc(s.name)}" placeholder="Name (e.g. Sprints)" aria-label="Segment ${i + 1} name" autocomplete="off">
+      <div class="seg-tools">
+        ${n > 1 ? `<button class="icon" data-a="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ico.up}</button>
+        <button class="icon" data-a="down" ${i === n - 1 ? 'disabled' : ''} aria-label="Move down">${ico.down}</button>` : ''}
+        <button class="icon" data-a="dup" aria-label="Duplicate segment">${ico.dup}</button>
+        <button class="icon" data-a="del" ${n === 1 ? 'disabled' : ''} aria-label="Delete segment">${ico.del}</button>
+      </div>
+    </div>
+    <div class="toggle">
+      <button data-a="mode" data-v="reps" aria-pressed="${s.mode === 'reps'}">Reps</button>
+      <button data-a="mode" data-v="laps" aria-pressed="${s.mode === 'laps'}">Laps</button>
+    </div>
+    <div class="fields">
+      <div class="field"><span>How many</span>
+        <div class="stepper">
+          <button data-a="dec" aria-label="Fewer">−</button>
+          <input type="number" inputmode="numeric" min="1" max="99" data-f="count" value="${s.count}" aria-label="How many ${unit(s, 2)}">
+          <button data-a="inc" aria-label="More">+</button>
+        </div>
+      </div>
+      ${timeField('Time each', 'work', s.work)}
+      ${timeField('Rest between', 'rest', s.rest)}
+      ${i < n - 1 ? timeField('Rest after this segment', 'after', s.after) : ''}
+    </div>
+    <p class="seg-sum" data-sum>${segSummary(s)}</p>
+  </section>`).join('');
+  updateTotals();
+}
+
+function updateTotals() {
+  $('#totTime').textContent = fmt(wTotal(W));
+  const reps = W.segments.reduce((t, s) => t + s.count, 0);
+  $('#totInfo').textContent = `${W.segments.length} segment${W.segments.length === 1 ? '' : 's'}, ${reps} rounds`;
+}
+
+function readTime(box) {
+  const [m, s] = box.querySelectorAll('input');
+  return clamp((parseInt(m.value) || 0) * 60 + (parseInt(s.value) || 0), 0, 5999);
+}
+
+$('#segs').addEventListener('input', e => {
+  const t = e.target, sec = t.closest('.seg'); if (!sec) return;
+  const s = W.segments[+sec.dataset.i];
+  if (t.dataset.f === 'name') s.name = t.value;
+  else if (t.dataset.f === 'count') s.count = clamp(parseInt(t.value) || 1, 1, 99);
+  else if (t.dataset.t) { const box = t.closest('.time'); s[box.dataset.f] = readTime(box); }
+  sec.querySelector('[data-sum]').innerHTML = segSummary(s);
+  persist(); updateTotals();
+});
+$('#segs').addEventListener('change', e => {
+  const t = e.target, sec = t.closest('.seg'); if (!sec) return;
+  const s = W.segments[+sec.dataset.i];
+  if (t.dataset.f === 'count') t.value = s.count;
+  if (t.dataset.t) {
+    const box = t.closest('.time'), f = box.dataset.f;
+    if (f === 'work' && s.work < 1) s.work = 1;
+    const [m, x] = box.querySelectorAll('input');
+    m.value = Math.floor(s[f] / 60); x.value = String(s[f] % 60).padStart(2, '0');
+    sec.querySelector('[data-sum]').innerHTML = segSummary(s);
+    persist(); updateTotals();
+  }
+});
+$('#segs').addEventListener('focusin', e => { if (e.target.type === 'number') e.target.select(); });
+$('#segs').addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const sec = b.closest('.seg'), i = +sec.dataset.i, s = W.segments[i], a = b.dataset.a;
+  if (a === 'mode') { s.mode = b.dataset.v; }
+  else if (a === 'inc' || a === 'dec') {
+    s.count = clamp(s.count + (a === 'inc' ? 1 : -1), 1, 99);
+    sec.querySelector('[data-f=count]').value = s.count;
+    sec.querySelector('[data-sum]').innerHTML = segSummary(s);
+    persist(); updateTotals(); return;
+  }
+  else if (a === 'up' && i > 0) [W.segments[i - 1], W.segments[i]] = [W.segments[i], W.segments[i - 1]];
+  else if (a === 'down' && i < W.segments.length - 1) [W.segments[i + 1], W.segments[i]] = [W.segments[i], W.segments[i + 1]];
+  else if (a === 'dup') W.segments.splice(i + 1, 0, { ...s });
+  else if (a === 'del' && W.segments.length > 1) W.segments.splice(i, 1);
+  persist(); renderSegs();
+});
+
+$('#addSeg').onclick = () => {
+  const last = W.segments[W.segments.length - 1];
+  W.segments.push(last ? { ...last, name: '' } : newSeg());
+  persist(); renderSegs();
+  const secs = document.querySelectorAll('.seg');
+  secs[secs.length - 1].scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+};
+$('#wname').addEventListener('input', e => { W.name = e.target.value; persist(); });
+$('#prep').addEventListener('change', e => { W.prep = +e.target.value; persist(); updateTotals(); });
+
+function renderHeader() {
+  $('#wname').value = W.name || '';
+  const p = $('#prep');
+  if (![...p.options].some(o => +o.value === W.prep)) W.prep = 5;
+  p.value = String(W.prep);
+}
+
+/* ---------- Saved workouts ---------- */
+let toastT;
+function toast(msg, ms = 1800) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
+function renderSaved() {
+  const lib = load(LIB, []);
+  $('#saved').innerHTML = lib.length ? lib.map((w, i) => `
+    <li>
+      <div class="s-info"><div class="s-name">${esc(w.name)}</div>
+      <div class="s-meta">${fmt(wTotal(w))}, ${w.segments.length} segment${w.segments.length === 1 ? '' : 's'}</div></div>
+      <button class="btn" data-load="${i}">Load</button>
+      <button class="icon" data-rm="${i}" aria-label="Delete ${esc(w.name)}">${ico.del}</button>
+    </li>`).join('') : '<li><p class="empty">Save a workout here to reuse it later.</p></li>';
+}
+$('#saveW').onclick = () => {
+  const lib = load(LIB, []);
+  if (!W.name.trim()) { W.name = 'Workout ' + (lib.length + 1); $('#wname').value = W.name; persist(); }
+  const copy = JSON.parse(JSON.stringify(W));
+  const at = lib.findIndex(w => w.name.trim().toLowerCase() === W.name.trim().toLowerCase());
+  if (at >= 0) lib[at] = copy; else lib.unshift(copy);
+  store(LIB, lib); renderSaved(); toast(at >= 0 ? 'Updated "' + W.name + '"' : 'Saved "' + W.name + '"');
+};
+$('#newW').onclick = () => { W = fresh(); persist(); renderHeader(); renderSegs(); window.scrollTo(0, 0); toast('New workout'); };
+$('#saved').addEventListener('click', e => {
+  const lib = load(LIB, []);
+  const l = e.target.closest('[data-load]'), r = e.target.closest('[data-rm]');
+  if (l) { W = JSON.parse(JSON.stringify(lib[+l.dataset.load])); persist(); renderHeader(); renderSegs(); window.scrollTo(0, 0); toast('Loaded "' + W.name + '"'); }
+  if (r) { const name = lib[+r.dataset.rm].name; lib.splice(+r.dataset.rm, 1); store(LIB, lib); renderSaved(); toast('Deleted "' + name + '"'); }
+});
+
+/* ---------- Sound & vibration ---------- */
+let ac = null, soundOn = load(SND, true);
+function ensureAudio() {
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) {}
+}
+function tone(freq, dur, when = 0, vol = 0.3) {
+  if (!ac || !soundOn) return;
+  const t = ac.currentTime + when, o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+const buzz = p => { try { if (NATIVE) NATIVE.vibrate(JSON.stringify([].concat(p))); else if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
+const cue = {
+  tick: () => { tone(660, 0.12); buzz(60); },
+  work: () => { tone(988, 0.55, 0, 0.35); buzz([220]); },
+  rest: () => { tone(523, 0.5, 0, 0.32); buzz([120, 80, 120]); },
+  done: () => { tone(784, 0.18); tone(988, 0.18, 0.2); tone(1319, 0.5, 0.4, 0.35); buzz([150, 80, 150, 80, 300]); }
+};
+const sndIcon = () => soundOn
+  ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span>Sound</span>'
+  : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg><span>Muted</span>';
+$('#sndBtn').onclick = () => { soundOn = !soundOn; store(SND, soundOn); $('#sndBtn').innerHTML = sndIcon(); $('#sndBtn').setAttribute('aria-label', soundOn ? 'Sound on' : 'Sound off'); };
+
+/* ---------- Wake lock ---------- */
+let lock = null;
+async function wake() { try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } } catch (e) {} }
+function unwake() { try { lock && lock.release(); } catch (e) {} lock = null; }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && R && R.k !== 'done') { wake(); if (R.running) tick(); }
+  if (document.visibilityState === 'hidden' && R && R.k !== 'done' && !document.pictureInPictureElement) openPip(true);
+});
+
+/* ---------- Mini timer (picture-in-picture over other apps) ---------- */
+const pc = $('#pipCanvas'), pv = $('#pipVideo'), px = pc.getContext('2d');
+const pipOK = !NATIVE && !!((document.pictureInPictureEnabled && pv.requestPictureInPicture) || typeof pv.webkitSetPresentationMode === 'function') && !!pc.captureStream;
+const PIPC = { work: ['#FFB21F', '#14204A'], rest: ['#2E73F0', '#FFFFFF'], ready: ['#1E2B5E', '#FFFFFF'], done: ['#14204A', '#FFFFFF'] };
+function drawPip() {
+  if (!R) return;
+  const [bg, fg] = PIPC[R.k] || PIPC.ready, w = pc.width, h = pc.height, s = steps[R.i] || {};
+  const F = '"Barlow Condensed","Arial Narrow",sans-serif';
+  px.fillStyle = bg; px.fillRect(0, 0, w, h);
+  px.fillStyle = fg; px.textAlign = 'center'; px.textBaseline = 'middle';
+  const top = R.k === 'done' ? 'Workout done' : R.k === 'rest' ? 'Rest' : R.k === 'ready' ? 'Get ready' : s.sub;
+  px.font = '700 40px ' + F; px.fillText(top + (R.running || R.k === 'done' ? '' : '  (paused)'), w / 2, 40);
+  px.font = '800 170px ' + F; px.fillText(R.k === 'done' ? fmt(totalSec) : fmt(Math.ceil(R.rem / 1000)), w / 2, h / 2 + 22);
+  if (R.k !== 'done') {
+    const f = clamp(1 - R.rem / 1000 / s.dur, 0, 1);
+    px.globalAlpha = .25; px.fillRect(0, h - 16, w, 16); px.globalAlpha = 1; px.fillRect(0, h - 16, w * f, 16);
+  }
+}
+async function openPip(auto) {
+  if (!pipOK || !R) return;
+  try {
+    if (document.pictureInPictureElement) { if (!auto) await document.exitPictureInPicture(); return; }
+    if (!pv.srcObject) pv.srcObject = pc.captureStream(10);
+    drawPip();
+    await pv.play();
+    if (pv.requestPictureInPicture) await pv.requestPictureInPicture();
+    else pv.webkitSetPresentationMode('picture-in-picture');
+  } catch (e) { if (!auto) toast('Mini timer is blocked here. Open the timer from its own page.'); }
+}
+function closePip() { try { if (document.pictureInPictureElement) document.exitPictureInPicture(); else if (pv.webkitPresentationMode === 'picture-in-picture') pv.webkitSetPresentationMode('inline'); } catch (e) {} }
+$('#pipBtn').hidden = !pipOK;
+$('#pipBtn').onclick = () => openPip(false);
+
+/* ---------- Media controls (play/pause/skip from the mini window & lock screen) ---------- */
+function msSetup() {
+  if (!('mediaSession' in navigator)) return;
+  const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch (e) {} };
+  h('play', () => { if (R && !R.running) togglePause(); });
+  h('pause', () => { if (R && R.running) togglePause(); });
+  h('nexttrack', () => skip());
+  h('previoustrack', () => prev());
+  h('enterpictureinpicture', () => openPip(true));
+}
+function msUpdate() {
+  if (!R || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+  try {
+    const s = steps[R.i] || {};
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: R.k === 'done' ? 'Workout done' : fmt(Math.ceil(R.rem / 1000)) + '  ' + (s.k === 'rest' ? 'Rest' : s.sub),
+      artist: W.name.trim() || 'Interval Timer'
+    });
+    navigator.mediaSession.playbackState = R.running ? 'playing' : 'paused';
+  } catch (e) {}
+}
+msSetup();
+
+/* ---------- Full screen ---------- */
+const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+const canFS = !NATIVE && !!document.documentElement.requestFullscreen && !standalone;
+function goFS() { if (canFS && !document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
+$('#fsBtn').hidden = !canFS;
+$('#fsBtn').onclick = () => document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : goFS();
+document.addEventListener('fullscreenchange', () => { $('#fsBtn').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
+
+/* ---------- Installed app ---------- */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+let installEvt = null;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (isIOS && !standalone && !NATIVE) $('#installBtn').hidden = false;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#installBtn').hidden = false; });
+window.addEventListener('appinstalled', () => { installEvt = null; $('#installBtn').hidden = true; toast('Installed. Open it from your home screen.', 3500); });
+$('#installBtn').onclick = async () => {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; $('#installBtn').hidden = true; }
+  else if (isIOS) toast('In Safari: tap Share, then Add to Home Screen', 5000);
+  else toast('Open the Chrome menu, then tap Install app or Add to Home screen', 5000);
+};
+
+/* ---------- Runner ---------- */
+/* ---------- Android app bridge ---------- */
+const BARS = { work: ['#FFB21F', false], rest: ['#2E73F0', true], ready: ['#1E2B5E', true], done: ['#14204A', true] };
+function nativeSync() {
+  if (!NATIVE) return;
+  try {
+    const active = !!R && R.k !== 'done';
+    NATIVE.setState(active, active && !R.running);
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const [c, light] = R ? BARS[R.k] || BARS.ready : (dark ? ['#0D1430', true] : ['#EEF1F7', false]);
+    NATIVE.setBars(c, light);
+  } catch (e) {}
+}
+window.__setPip = on => document.documentElement.classList.toggle('pip', !!on);
+window.__nativeCmd = cmd => { if (cmd === 'toggle') togglePause(); else if (cmd === 'next') skip(); else if (cmd === 'prev') prev(); };
+
+let steps = [], R = null, timer = null, totalSec = 0, endArmed = 0;
+const playIco = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
+const pauseIco = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z"/></svg>';
+
+function buildSteps() {
+  const st = [], segs = W.segments;
+  if (W.prep > 0) st.push({ k: 'ready', dur: W.prep, title: 'Get ready', sub: segLabel(segs[0], 0) });
+  segs.forEach((s, i) => {
+    const name = segLabel(s, i), U = s.mode === 'laps' ? 'Lap' : 'Rep', work = Math.max(1, s.work);
+    for (let r = 1; r <= s.count; r++) {
+      st.push({ k: 'work', dur: work, title: name, sub: `${U} ${r} of ${s.count}` });
+      if (r < s.count && s.rest > 0) st.push({ k: 'rest', dur: s.rest, title: 'Rest', sub: `${U} ${r} of ${s.count} done` });
+    }
+    if (i < segs.length - 1 && s.after > 0) st.push({ k: 'rest', dur: s.after, title: 'Rest', sub: `${name} done` });
+  });
+  let acc = 0; st.forEach(x => { x.start = acc; acc += x.dur; });
+  totalSec = acc;
+  return st;
+}
+function nextLabel(i) {
+  const n = steps[i + 1];
+  if (!n) return 'Last one';
+  return n.k === 'rest' ? `Then: rest ${fmt(n.dur)}` : `Then: ${n.title === 'Rest' ? '' : n.title + ', '}${n.sub.toLowerCase()}`;
+}
+
+function start() {
+  ensureAudio(); wake(); goFS();
+  steps = buildSteps();
+  if (!steps.length) return;
+  R = { i: 0, running: true, rem: 0, end: 0, lastSec: 0, k: '', shown: null };
+  $('#run').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  $('#sndBtn').innerHTML = sndIcon();
+  enter(0, 0, true);
+  clearInterval(timer); timer = setInterval(tick, 100);
+}
+function enter(i, carryMs = 0, silent = false) {
+  R.i = i; const s = steps[i];
+  R.rem = s.dur * 1000 - carryMs; R.end = performance.now() + R.rem; R.lastSec = Math.ceil(R.rem / 1000);
+  R.k = s.k;
+  const run = $('#run'); run.dataset.k = s.k;
+  $('#rTitle').textContent = s.title;
+  $('#rSub').textContent = s.sub;
+  $('#rNext').textContent = nextLabel(i);
+  const t = $('#rTime'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+  if (!silent) (s.k === 'work' ? cue.work : s.k === 'rest' ? cue.rest : cue.tick)();
+  draw(); msUpdate(); nativeSync();
+}
+function tick() {
+  if (!R || !R.running) return;
+  let rem = R.end - performance.now();
+  if (rem <= 0) {
+    let over = -rem, i = R.i + 1;
+    while (i < steps.length && over >= steps[i].dur * 1000) { over -= steps[i].dur * 1000; i++; }
+    if (i >= steps.length) return finish();
+    return enter(i, over);
+  }
+  const sec = Math.ceil(rem / 1000);
+  R.rem = rem;
+  if (sec !== R.lastSec) { R.lastSec = sec; if (sec <= 3 && sec >= 1) cue.tick(); msUpdate(); }
+  draw();
+}
+function draw() {
+  const s = steps[R.i];
+  $('#rTime').textContent = fmt(Math.ceil(R.rem / 1000));
+  const doneIn = s.dur - R.rem / 1000;
+  $('#stepBar').style.width = clamp(doneIn / s.dur * 100, 0, 100) + '%';
+  $('#allBar').style.width = clamp((s.start + doneIn) / totalSec * 100, 0, 100) + '%';
+  $('#left').textContent = fmt(totalSec - s.start - doneIn) + ' left';
+  if (R.shown !== R.running) {
+    R.shown = R.running;
+    $('#playBtn').innerHTML = (R.running ? pauseIco : playIco) + `<span>${R.running ? 'Pause' : 'Resume'}</span>`;
+    $('#playBtn').setAttribute('aria-label', R.running ? 'Pause' : 'Resume');
+    $('#run').classList.toggle('paused', !R.running);
+    msUpdate(); nativeSync();
+  }
+  drawPip();
+}
+function togglePause() {
+  if (!R || R.k === 'done') return;
+  ensureAudio();
+  if (R.running) { R.rem = R.end - performance.now(); R.running = false; }
+  else { R.end = performance.now() + R.rem; R.running = true; }
+  draw();
+}
+function skip() { if (!R || R.k === 'done') return; R.i + 1 >= steps.length ? finish() : enter(R.i + 1); if (!R.running) draw(); }
+function prev() {
+  if (!R || R.k === 'done') return;
+  const s = steps[R.i], elapsed = s.dur - R.rem / 1000;
+  enter(elapsed > 2 || R.i === 0 ? R.i : R.i - 1, 0, true);
+  if (!R.running) { R.rem = steps[R.i].dur * 1000; draw(); }
+}
+function finish() {
+  clearInterval(timer); R.running = false; R.k = 'done';
+  const run = $('#run'); run.dataset.k = 'done'; run.classList.remove('paused');
+  $('#rTitle').textContent = W.name.trim() || 'Workout';
+  $('#rSub').textContent = 'Done';
+  $('#rTime').textContent = fmt(totalSec);
+  $('#rNext').textContent = steps.filter(s => s.k === 'work').length + ' rounds finished';
+  $('#left').textContent = '';
+  cue.done(); unwake(); drawPip(); msUpdate(); nativeSync();
+}
+function close() {
+  clearInterval(timer); R = null; unwake(); closePip();
+  if (document.fullscreenElement && !standalone) document.exitFullscreen().catch(() => {});
+  $('#run').classList.remove('on', 'paused');
+  document.body.style.overflow = '';
+  $('#endBtn span').textContent = 'End';
+  nativeSync();
+}
+
+$('#go').onclick = start;
+$('#playBtn').onclick = togglePause;
+$('#nextBtn').onclick = skip;
+$('#prevBtn').onclick = prev;
+$('#doneAgain').onclick = start;
+$('#doneBack').onclick = close;
+$('#endBtn').onclick = () => {
+  if (!R || R.k === 'done') return close();
+  if (Date.now() - endArmed < 2500) return close();
+  endArmed = Date.now(); $('#endBtn span').textContent = 'Tap to end';
+  setTimeout(() => { if ($('#endBtn span')) $('#endBtn span').textContent = 'End'; }, 2500);
+};
+document.addEventListener('keydown', e => {
+  if (!R || /INPUT|SELECT/.test(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  else if (e.key === 'ArrowRight') skip();
+  else if (e.key === 'ArrowLeft') prev();
+  else if (e.key === 'Escape') close();
+});
+
+renderHeader(); renderSegs(); renderSaved(); nativeSync();
+})();
+</script>
+</body>
+</html>

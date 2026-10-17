@@ -19,7 +19,7 @@
 :root{
   --bg:#EEF1F7;--surface:#FFFFFF;--ink:#14204A;--muted:#5A6587;--line:#D3D9E7;--field:#F5F7FB;
   --work:#FFB21F;--rest:#2E73F0;--navy:#14204A;--danger:#C8323C;
-  --cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow","Roboto Condensed","sans-serif-condensed",system-ui,sans-serif;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
   color-scheme:light;
 }
@@ -145,6 +145,12 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
   .done-btns{flex-direction:column}
   .r-time{font-size:min(30vw,54vh)}
 }
+html.pip .run.on{display:flex;padding:4px 8px 6px}
+html.pip .run-top,html.pip .ctrls,html.pip .done-btns,html.pip .r-next,html.pip .r-title{display:none !important}
+html.pip .r-sub{font-size:14vh;margin:0;opacity:.9;white-space:nowrap}
+html.pip .r-time{font-size:min(60vh,46vw);margin:0}
+html.pip .bars{margin:0;gap:0}
+html.pip .bar.thin{display:none}
 .pipsrc{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
 </style>
 </head>
@@ -219,6 +225,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <script>
 (() => {
 const $ = s => document.querySelector(s);
+const NATIVE = window.AndroidTimer || null;
 const KEY = 'it.current', LIB = 'it.saved', SND = 'it.sound';
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -400,7 +407,7 @@ function tone(freq, dur, when = 0, vol = 0.3) {
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
 }
-const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+const buzz = p => { try { if (NATIVE) NATIVE.vibrate(JSON.stringify([].concat(p))); else if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 const cue = {
   tick: () => { tone(660, 0.12); buzz(60); },
   work: () => { tone(988, 0.55, 0, 0.35); buzz([220]); },
@@ -423,7 +430,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- Mini timer (picture-in-picture over other apps) ---------- */
 const pc = $('#pipCanvas'), pv = $('#pipVideo'), px = pc.getContext('2d');
-const pipOK = !!((document.pictureInPictureEnabled && pv.requestPictureInPicture) || typeof pv.webkitSetPresentationMode === 'function') && !!pc.captureStream;
+const pipOK = !NATIVE && !!((document.pictureInPictureEnabled && pv.requestPictureInPicture) || typeof pv.webkitSetPresentationMode === 'function') && !!pc.captureStream;
 const PIPC = { work: ['#FFB21F', '#14204A'], rest: ['#2E73F0', '#FFFFFF'], ready: ['#1E2B5E', '#FFFFFF'], done: ['#14204A', '#FFFFFF'] };
 function drawPip() {
   if (!R) return;
@@ -479,7 +486,7 @@ msSetup();
 
 /* ---------- Full screen ---------- */
 const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
-const canFS = !!document.documentElement.requestFullscreen && !standalone;
+const canFS = !NATIVE && !!document.documentElement.requestFullscreen && !standalone;
 function goFS() { if (canFS && !document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
 $('#fsBtn').hidden = !canFS;
 $('#fsBtn').onclick = () => document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : goFS();
@@ -491,7 +498,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 let installEvt = null;
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-if (isIOS && !standalone) $('#installBtn').hidden = false;
+if (isIOS && !standalone && !NATIVE) $('#installBtn').hidden = false;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#installBtn').hidden = false; });
 window.addEventListener('appinstalled', () => { installEvt = null; $('#installBtn').hidden = true; toast('Installed. Open it from your home screen.', 3500); });
 $('#installBtn').onclick = async () => {
@@ -501,6 +508,21 @@ $('#installBtn').onclick = async () => {
 };
 
 /* ---------- Runner ---------- */
+/* ---------- Android app bridge ---------- */
+const BARS = { work: ['#FFB21F', false], rest: ['#2E73F0', true], ready: ['#1E2B5E', true], done: ['#14204A', true] };
+function nativeSync() {
+  if (!NATIVE) return;
+  try {
+    const active = !!R && R.k !== 'done';
+    NATIVE.setState(active, active && !R.running);
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const [c, light] = R ? BARS[R.k] || BARS.ready : (dark ? ['#0D1430', true] : ['#EEF1F7', false]);
+    NATIVE.setBars(c, light);
+  } catch (e) {}
+}
+window.__setPip = on => document.documentElement.classList.toggle('pip', !!on);
+window.__nativeCmd = cmd => { if (cmd === 'toggle') togglePause(); else if (cmd === 'next') skip(); else if (cmd === 'prev') prev(); };
+
 let steps = [], R = null, timer = null, totalSec = 0, endArmed = 0;
 const playIco = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
 const pauseIco = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z"/></svg>';
@@ -547,7 +569,7 @@ function enter(i, carryMs = 0, silent = false) {
   $('#rNext').textContent = nextLabel(i);
   const t = $('#rTime'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
   if (!silent) (s.k === 'work' ? cue.work : s.k === 'rest' ? cue.rest : cue.tick)();
-  draw(); msUpdate();
+  draw(); msUpdate(); nativeSync();
 }
 function tick() {
   if (!R || !R.running) return;
@@ -575,7 +597,7 @@ function draw() {
     $('#playBtn').innerHTML = (R.running ? pauseIco : playIco) + `<span>${R.running ? 'Pause' : 'Resume'}</span>`;
     $('#playBtn').setAttribute('aria-label', R.running ? 'Pause' : 'Resume');
     $('#run').classList.toggle('paused', !R.running);
-    msUpdate();
+    msUpdate(); nativeSync();
   }
   drawPip();
 }
@@ -601,7 +623,7 @@ function finish() {
   $('#rTime').textContent = fmt(totalSec);
   $('#rNext').textContent = steps.filter(s => s.k === 'work').length + ' rounds finished';
   $('#left').textContent = '';
-  cue.done(); unwake(); drawPip(); msUpdate();
+  cue.done(); unwake(); drawPip(); msUpdate(); nativeSync();
 }
 function close() {
   clearInterval(timer); R = null; unwake(); closePip();
@@ -609,6 +631,7 @@ function close() {
   $('#run').classList.remove('on', 'paused');
   document.body.style.overflow = '';
   $('#endBtn span').textContent = 'End';
+  nativeSync();
 }
 
 $('#go').onclick = start;
@@ -631,7 +654,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape') close();
 });
 
-renderHeader(); renderSegs(); renderSaved();
+renderHeader(); renderSegs(); renderSaved(); nativeSync();
 })();
 </script>
 </body>
